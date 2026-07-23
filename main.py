@@ -30,7 +30,7 @@ def get_min_max_by_time(hour=None, minute=None):
     time_rate = min((hour * 60 + minute) / (22 * 60), 1)
     min_step = get_int_value_default(config, 'MIN_STEP', 18000)
     max_step = get_int_value_default(config, 'MAX_STEP', 25000)
-    return (min_step, max_step) if str(config.get('FIXED_STEP_RANGE', 'False')).lower() == 'true' else (int(time_rate * min_step), int(time_rate * max_step))
+    return int(time_rate * min_step), int(time_rate * max_step)
 
 
 # 虚拟ip地址
@@ -198,12 +198,12 @@ def run_single_account(total, idx, user_mi, passwd_mi):
         exec_msg, success = runner.login_and_post_step(min_step, max_step)
         log_str += runner.log_str
         log_str += f'{exec_msg}\n'
-        exec_result = {"user": user_mi, "success": success,
+        exec_result = {"user": desensitize_user_name(user_mi), "success": success,
                        "msg": exec_msg}
     except:
         log_str += f"执行异常:{traceback.format_exc()}\n"
         log_str += traceback.format_exc()
-        exec_result = {"user": user_mi, "success": False,
+        exec_result = {"user": desensitize_user_name(user_mi), "success": False,
                        "msg": f"执行异常:{traceback.format_exc()}"}
     print(log_str)
     return exec_result
