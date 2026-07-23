@@ -2,7 +2,7 @@ name: 刷步数
 
 on:
   schedule:
-    - cron: '17 1,4,7,10,14,23 * * *'
+    - cron: '0 4 * * *'
   workflow_dispatch:
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
             AES_KEY: ${{ secrets.AES_KEY }}
         run: |
           pip3 install requests pytz pycryptodome
-          python3 main.py
+          today=$(TZ=Asia/Shanghai date +%F); if [[ "$today" < "2026-07-24" || "$today" > "2026-08-12" ]]; then echo "不在20天执行周期内，停止提交"; exit 0; fi; python3 main.py; if [[ "$today" == "2026-08-12" ]]; then GH_TOKEN="${{ secrets.PAT }}" gh workflow disable run.yml --repo "${{ github.repository }}"; fi
 
       - name: persist tokens
         run: |
