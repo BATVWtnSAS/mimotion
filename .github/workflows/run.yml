@@ -2,7 +2,7 @@ name: 刷步数
 
 on:
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '0 1,4,7,10,14,23 * * *'
   workflow_dispatch:
 
 jobs:
@@ -10,29 +10,53 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      - name: 检查有效日期
+        id: date_gate
+        shell: bash
+        run: |
+          today=$(TZ=Asia/Shanghai date +%F)
+          active=false
+
+          if [[ "$today" >= "2026-07-24" && "$today" <= "2026-08-12" ]] ||
+             [[ "$today" >= "2026-10-01" && "$today" <= "2026-12-09" ]] ||
+             [[ "$today" >= "2027-05-01" && "$today" <= "2027-07-09" ]] ||
+             [[ "$today" >= "2027-10-01" && "$today" <= "2027-12-09" ]] ||
+             [[ "$today" >= "2028-05-01" && "$today" <= "2028-07-09" ]]; then
+            active=true
+          fi
+
+          echo "active=$active" >> "$GITHUB_OUTPUT"
+          echo "北京时间日期：$today；有效：$active"
+
       - name: Checkout codes
+        if: steps.date_gate.outputs.active == 'true'
         uses: actions/checkout@v5
         with:
           token: ${{ secrets.PAT }} #此处PAT需要申请，教程详见：README
+
       - name: Update system and install zsh
+        if: steps.date_gate.outputs.active == 'true'
         run: |
           sudo -E apt-get -qq update
           sudo -E apt-get install zsh -y
-          
+
       - name: 初始化Python
+        if: steps.date_gate.outputs.active == 'true'
         uses: actions/setup-python@v6
         with:
           python-version: "3.10"
-          
+
       - name: 开始
+        if: steps.date_gate.outputs.active == 'true'
         env:
-            CONFIG: ${{ secrets.CONFIG }}
-            AES_KEY: ${{ secrets.AES_KEY }}
+          CONFIG: ${{ secrets.CONFIG }}
+          AES_KEY: ${{ secrets.AES_KEY }}
         run: |
           pip3 install requests pytz pycryptodome
-          today=$(TZ=Asia/Shanghai date +%F); if [[ "$today" < "2026-07-24" || "$today" > "2026-08-12" ]]; then echo "不在20天执行周期内，停止提交"; exit 0; fi; python3 main.py; if [[ "$today" == "2026-08-12" ]]; then GH_TOKEN="${{ secrets.PAT }}" gh workflow disable run.yml --repo "${{ github.repository }}"; fi
+          python3 main.py
 
       - name: persist tokens
+        if: steps.date_gate.outputs.active == 'true'
         run: |
           git config user.name github-actions
           git config user.email github-actions@users.noreply.github.com
