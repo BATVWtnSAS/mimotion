@@ -57,10 +57,14 @@ jobs:
           python3 main.py
 
       - name: persist tokens
-        if: steps.date_gate.outputs.active == 'true'
+        if: always() && steps.date_gate.outputs.active == 'true'
         run: |
           git config user.name github-actions
           git config user.email github-actions@users.noreply.github.com
-          git add .
-          git commit -m "persist tokens trigger by ${{ github.event_name }}"
-          git push origin master
+          git add encrypted_tokens.data
+          if git diff --cached --quiet; then
+            echo "Token 无变化，无需提交"
+          else
+            git commit -m "persist tokens trigger by ${{ github.event_name }}"
+            git push origin master
+          fi
