@@ -281,6 +281,7 @@ def get_current_step(app_token, userid):
     try:
         current_steps = []
         status_codes = []
+        successful_responses = 0
         for query_type in ("detail", "summary"):
             params = {
                 "userid": userid,
@@ -295,6 +296,13 @@ def get_current_step(app_token, userid):
                 status_codes.append(str(response.status_code))
                 continue
             payload = response.json()
+            if isinstance(payload, dict) and payload.get("error_code"):
+                return None, "请求当前步数异常：error_code=%s" % payload.get("error_code")
+            if not isinstance(payload, (dict, list)):
+                return None, "请求当前步数异常：响应格式不正确"
+            if isinstance(payload, dict) and "data" not in payload:
+                return None, "请求当前步数异常：响应中缺少data"
+            successful_responses += 1
             band_data = payload.get("data", payload) if isinstance(payload, dict) else payload
             if isinstance(band_data, str):
                 band_data = json.loads(base64.b64decode(band_data).decode("utf-8"))
@@ -328,6 +336,8 @@ def get_current_step(app_token, userid):
                 return max(current_steps), None
         if status_codes:
             return None, "请求当前步数异常：HTTP %s" % "/".join(status_codes)
-        return None, "未找到 Zepp Life 当天已同步步数"
+        if successful_responses:
+            return 0, "Zepp Life 当天暂无已同步记录，按0步处理"
+        return None, "未获得有效的当前步数响应"
     except Exception as e:
         return None, "读取当前步数异常：%s" % e
