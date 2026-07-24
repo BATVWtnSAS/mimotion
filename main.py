@@ -184,6 +184,12 @@ class MiMotionRunner:
 
         step = str(random.randint(min_step, max_step))
         self.log_str += f"已设置为随机步数范围({min_step}~{max_step}) 随机值:{step}\n"
+        current_step, msg = zeppHelper.get_current_step(app_token, self.user_id)
+        if current_step is None:
+            return f"读取当前步数失败[{msg}]，为防止覆盖较高步数已跳过提交", False
+        self.log_str += f"Zepp Life 当天已同步步数:{current_step}\n"
+        if current_step >= int(step):
+            return f"当前步数（{current_step}）已不低于目标（{step}），已跳过提交", True
         ok, msg = zeppHelper.post_fake_brand_data(step, app_token, self.user_id)
         return f"修改步数（{step}）[" + msg + "]", ok
 
