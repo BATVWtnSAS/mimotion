@@ -187,6 +187,8 @@ class MiMotionRunner:
         current_step, msg = zeppHelper.get_current_step(app_token, self.user_id)
         if current_step is None:
             return f"读取当前步数失败[{msg}]，为防止覆盖较高步数已跳过提交", False
+        if msg:
+            self.log_str += f"{msg}\n"
         self.log_str += f"Zepp Life 当天已同步步数:{current_step}\n"
         if current_step >= int(step):
             return f"当前步数（{current_step}）已不低于目标（{step}），已跳过提交", True
@@ -244,9 +246,10 @@ def execute():
         summary = f"\n执行账号总数{total}，成功：{success_count}，失败：{total - success_count}"
         print(summary)
         push_util.push_results(push_results, summary, push_config)
+        return success_count == total
     else:
         print(f"账号数长度[{len(user_list)}]和密码数长度[{len(passwd_list)}]不匹配，跳过执行")
-        exit(1)
+        return False
 
 
 def prepare_user_tokens() -> dict:
@@ -328,4 +331,5 @@ if __name__ == "__main__":
             print(f"多账号执行间隔：{sleep_seconds}")
             use_concurrent = False
         # endregion
-        execute()
+        if execute() is False:
+            exit(1)
